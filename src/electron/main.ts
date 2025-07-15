@@ -1,8 +1,8 @@
-import { app, BrowserWindow, Tray } from "electron";
-import path from 'path';
+import { app, BrowserWindow } from "electron";
 import {ipcMainHandle, isDev} from "./util.js";
 import {getStaticData, pollResources} from "./resourceManager.js";
-import {getAssetPath, getPreloadPath, getUIPath} from "./pathResolver.js";
+import {getPreloadPath, getUIPath} from "./pathResolver.js";
+import {createTray} from "./tray.js";
 
 
 app.on("ready", () => {
@@ -23,7 +23,32 @@ app.on("ready", () => {
         return getStaticData();
     })
 
-    new Tray(path.join(getAssetPath(), process.platform === "darwin" ? 'trayIconTemplate.png' : 'trayIcon.png'))
+    createTray(mainWindow)
+
+    handleCloseEvents(mainWindow)
 
 });
+
+function handleCloseEvents(mainWindow: BrowserWindow) {
+    let willClose = false
+
+    mainWindow.on("close", (e) => {
+        if (willClose) {
+            return
+        }
+        e.preventDefault();
+        mainWindow.hide();
+        if (app.dock) {
+            app.dock.hide();
+        }
+    });
+
+    app.on("before-quit", () => {
+        willClose = true;
+    });
+
+    mainWindow.on("show", () => {
+        willClose = false;
+    })
+}
 
