@@ -26,6 +26,10 @@ export function initDatabase() {
 
   db = new Database(dbPath);
 
+  // Enable foreign key constraints
+  db.pragma('foreign_keys = ON');
+  console.log('Foreign key constraints enabled:', db.pragma('foreign_keys', { simple: true }));
+
   // Create tables if they don't exist
   db.exec(`
     CREATE TABLE IF NOT EXISTS quizzes (
@@ -51,6 +55,9 @@ export function initDatabase() {
 export function getDb() {
   if (!db) {
     initDatabase();
+  } else {
+    // Ensure foreign key constraints are enabled
+    db.pragma('foreign_keys = ON');
   }
   return db;
 }
@@ -84,8 +91,10 @@ export function saveQuiz(title: string, questions: { text: string; options: stri
 
 // Get all quizzes
 export function getQuizzes() {
+  console.log('Database getQuizzes called');
   const db = getDb();
   const quizzes = db.prepare('SELECT * FROM quizzes ORDER BY createdAt DESC').all();
+  console.log('Database getQuizzes returning:', quizzes);
   return quizzes as Quiz[];
 }
 
@@ -142,4 +151,44 @@ export function updateQuiz(quizId: number, title: string, questions: { id?: numb
   });
 
   return transaction();
+}
+
+// Delete a quiz and its questions
+export function deleteQuiz(quizId: number) {
+  console.log('Database deleteQuiz called with ID:', quizId);
+  const db = getDb();
+
+  // Check if the quiz exists before deletion
+  const quizExists = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
+  console.log('Quiz exists before deletion:', quizExists);
+
+  if (!quizExists) {
+    console.log('Quiz does not exist, cannot delete');
+    return { success: false };
+  }
+
+  // Start a transaction
+  const transaction = db.transaction(() => {
+    // Delete the quiz (questions will be deleted automatically due to ON DELETE CASCADE)
+    const deleteQuizStmt = db.prepare('DELETE FROM quizzes WHERE id = ?');
+    const result = deleteQuizStmt.run(quizId);
+    console.log('Delete result:', result);
+
+    // Verify the quiz was deleted
+    const quizStillExists = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
+    console.log('Quiz still exists after deletion:', quizStillExists);
+
+    const success = { success: result.changes > 0 };
+    console.log('Returning success object:', success);
+    return success;
+  });
+
+  const transactionResult = transaction();
+  console.log('Transaction result:', transactionResult);
+
+  // Double-check after transaction
+  const quizStillExistsAfterTransaction = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
+  console.log('Quiz still exists after transaction:', quizStillExistsAfterTransaction);
+
+  return transactionResult;
 }

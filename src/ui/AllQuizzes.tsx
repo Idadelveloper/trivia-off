@@ -17,10 +17,16 @@ function AllQuizzes() {
     fetchQuizzes();
   }, []);
 
+  // Log when quizzes state changes
+  useEffect(() => {
+    console.log('Quizzes state updated:', quizzes);
+  }, [quizzes]);
+
   const fetchQuizzes = async () => {
     try {
       setLoading(true);
       const fetchedQuizzes = await window.electron.getQuizzes();
+      console.log('Fetched quizzes:', fetchedQuizzes);
       setQuizzes(fetchedQuizzes);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
@@ -40,13 +46,15 @@ function AllQuizzes() {
   };
 
   const handleDeleteQuiz = async (quizId: number) => {
+    console.log('Delete button clicked for quiz ID:', quizId);
     // Confirm before deleting
     if (window.confirm("Are you sure you want to delete this quiz?")) {
       try {
-        // Implement delete functionality when available in the API
-        // await window.electron.deleteQuiz(quizId);
-        console.log("Delete quiz:", quizId);
+        console.log('Deleting quiz with ID:', quizId);
+        const result = await window.electron.deleteQuiz(quizId);
+        console.log('Delete quiz result:', result);
         // Refresh the list after deletion
+        console.log('Refreshing quiz list after deletion');
         fetchQuizzes();
       } catch (error) {
         console.error('Error deleting quiz:', error);
@@ -83,6 +91,7 @@ function AllQuizzes() {
         </div>
       ) : (
         <div className="quizzes-grid">
+          {console.log('Rendering quizzes:', quizzes)}
           {quizzes.map((quiz) => (
             <div key={quiz.id} className="quiz-card">
               <h3>{quiz.title}</h3>

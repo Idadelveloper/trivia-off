@@ -12,6 +12,7 @@ type EventPayloadMapping = {
     getQuizzes: Quiz[];
     getQuizWithQuestions: QuizWithQuestions | null;
     updateQuiz: Quiz;
+    deleteQuiz: { success: boolean };
 }
 
 type StaticData = {
@@ -55,5 +56,6 @@ interface Window {
         getQuizzes: () => Promise<Quiz[]>;
         getQuizWithQuestions: (quizId: number) => Promise<QuizWithQuestions | null>;
         updateQuiz: (quizId: number, title: string, questions: { id?: number; text: string; options: string[]; correctAnswer: number }[]) => Promise<Quiz>;
+        deleteQuiz: (quizId: number) => Promise<{ success: boolean }>;
     }
 }

@@ -12,9 +12,18 @@ electron.contextBridge.exposeInMainWorld("electron", {
     getStaticData: () => ipcInvoke("getStaticData"),
     // Add database functions
     saveQuiz: (title, questions) => ipcInvoke("saveQuiz", { title, questions }),
-    getQuizzes: () => ipcInvoke("getQuizzes"),
+    getQuizzes: async () => {
+        console.log('Preload getQuizzes called');
+        const quizzes = await ipcInvoke("getQuizzes");
+        console.log('Preload getQuizzes returning:', quizzes);
+        return quizzes;
+    },
     getQuizWithQuestions: (quizId) => ipcInvoke("getQuizWithQuestions", { quizId }),
     updateQuiz: (quizId, title, questions) => ipcInvoke("updateQuiz", { quizId, title, questions }),
+    deleteQuiz: (quizId) => {
+        console.log('Preload deleteQuiz called with ID:', quizId);
+        return ipcInvoke("deleteQuiz", { quizId });
+    },
 } satisfies Window['electron'])
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(

@@ -33,12 +33,12 @@ function QuizDetail({ quizId }: QuizDetailProps) {
       setLoading(true);
       setError(null);
       const quizData = await window.electron.getQuizWithQuestions(quizId);
-      
+
       if (!quizData) {
         setError("Quiz not found");
         return;
       }
-      
+
       setQuiz(quizData);
     } catch (error) {
       console.error('Error fetching quiz details:', error);
@@ -57,9 +57,9 @@ function QuizDetail({ quizId }: QuizDetailProps) {
     // Confirm before deleting
     if (window.confirm("Are you sure you want to delete this quiz?")) {
       try {
-        // Implement delete functionality when available in the API
-        // await window.electron.deleteQuiz(quizId);
-        console.log("Delete quiz:", quizId);
+        console.log("Deleting quiz:", quizId);
+        const result = await window.electron.deleteQuiz(quizId);
+        console.log("Delete quiz result:", result);
         // Navigate back to all quizzes
         window.dispatchEvent(new Event("backToAllQuizzes"));
       } catch (error) {
