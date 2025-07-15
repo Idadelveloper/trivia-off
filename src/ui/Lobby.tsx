@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import "./App.css";
 
+// Define the HotspotStatus interface
+interface HotspotStatus {
+  isEnabled: boolean;
+  ssid?: string;
+  error?: string;
+}
+
 interface Player {
   id: string;
   name: string;
@@ -19,16 +26,47 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [serverUrl, setServerUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hotspotStatus, setHotspotStatus] = useState<HotspotStatus | null>(null);
+  const [hotspotError, setHotspotError] = useState<string | null>(null);
 
   useEffect(() => {
-    // This would be replaced with actual server initialization code
-    const initServer = async () => {
+    // Check and enable hotspot, then initialize server
+    const initHotspotAndServer = async () => {
       setIsLoading(true);
       try {
-        // Mock data for now - this would be replaced with actual server initialization
-        // and getting the local IP address
+        // Check hotspot status
+        const status = await window.electron.checkHotspotStatus();
+        setHotspotStatus(status);
+
+        // If hotspot is not enabled, try to enable it
+        if (!status.isEnabled && !status.error) {
+          // Default SSID and password - in a real app, you might want to make these configurable
+          const ssid = "TriviaOffHotspot";
+          const password = "trivia123";
+
+          const enabled = await window.electron.enableHotspot(ssid, password);
+          if (enabled) {
+            // Check status again after enabling
+            const updatedStatus = await window.electron.checkHotspotStatus();
+            setHotspotStatus(updatedStatus);
+
+            if (!updatedStatus.isEnabled) {
+              setHotspotError("Failed to enable hotspot. Please enable it manually.");
+            }
+          } else {
+            setHotspotError("Failed to enable hotspot. Please enable it manually.");
+          }
+        }
+
+        // Initialize server (mock for now)
+        // In a real implementation, you would use the hotspot's IP address
         setTimeout(() => {
-          setServerUrl("http://localhost:3000/join/" + quizId);
+          // Use the hotspot SSID in the URL if available
+          const baseUrl = status.isEnabled && status.ssid 
+            ? `http://${status.ssid}.local:3000/join/` 
+            : "http://localhost:3000/join/";
+
+          setServerUrl(baseUrl + quizId);
           setIsLoading(false);
         }, 1000);
 
@@ -48,12 +86,13 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
 
         return () => clearInterval(mockPlayerJoinInterval);
       } catch (error) {
-        console.error("Error initializing server:", error);
+        console.error("Error initializing hotspot and server:", error);
+        setHotspotError("An error occurred while setting up the hotspot: " + error.message);
         setIsLoading(false);
       }
     };
 
-    initServer();
+    initHotspotAndServer();
   }, [quizId]);
 
   return (
@@ -62,12 +101,30 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
 
       {isLoading ? (
         <div className="loading-container">
-          <p>Setting up the game server...</p>
+          <p>Setting up the hotspot and game server...</p>
+        </div>
+      ) : hotspotError ? (
+        <div className="error-container">
+          <p className="error-message">{hotspotError}</p>
+          <button className="retry-button" onClick={() => window.location.reload()}>
+            Retry
+          </button>
         </div>
       ) : (
         <div className="lobby-content">
           <div className="qr-section">
             <h3>Scan to Join</h3>
+            <div className="hotspot-status">
+              <p>
+                Hotspot Status: 
+                <strong className={hotspotStatus?.isEnabled ? "status-enabled" : "status-disabled"}>
+                  {hotspotStatus?.isEnabled ? " Enabled" : " Disabled"}
+                </strong>
+              </p>
+              {hotspotStatus?.ssid && (
+                <p>Network Name: <strong>{hotspotStatus.ssid}</strong></p>
+              )}
+            </div>
             <div className="qr-placeholder">
               {serverUrl && (
                 <div style={{ margin: "0 auto", width: "200px" }}>

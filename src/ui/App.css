@@ -701,6 +701,61 @@ h1 {
   font-size: 1rem;
 }
 
+/* Hotspot Status Styles */
+.hotspot-status {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background-color: #f1f9fe;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.hotspot-status p {
+  margin: 0.5rem 0;
+  color: #34495e;
+  font-size: 1rem;
+}
+
+.status-enabled {
+  color: #2ecc71;
+}
+
+.status-disabled {
+  color: #e74c3c;
+}
+
+.error-container {
+  padding: 2rem;
+  text-align: center;
+  background-color: #fdf2f2;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.retry-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 .players-section {
   background-color: #f8f9fa;
   border-radius: 8px;

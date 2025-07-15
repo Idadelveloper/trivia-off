@@ -26,6 +26,9 @@ function QuizCreator({ quizId }: QuizCreatorProps = {}) {
 
   // Fetch quiz data when in edit mode
   useEffect(() => {
+    // Update edit mode status based on quizId
+    setIsEditMode(!!quizId);
+
     if (quizId) {
       fetchQuizData(quizId);
     }
