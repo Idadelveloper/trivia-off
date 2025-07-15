@@ -109,6 +109,9 @@ function QuizCreator() {
         options: ["", "", "", ""],
         correctAnswer: -1,
       });
+
+      // Redirect back to home page
+      goBack();
     } catch (error) {
       console.error("Error saving quiz:", error);
       alert("Failed to save quiz. Please try again.");
