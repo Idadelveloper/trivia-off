@@ -10,12 +10,17 @@ electron.contextBridge.exposeInMainWorld("electron", {
             callback(stats);
         }),
     getStaticData: () => ipcInvoke("getStaticData"),
+    // Add database functions
+    saveQuiz: (title, questions) => ipcInvoke("saveQuiz", { title, questions }),
+    getQuizzes: () => ipcInvoke("getQuizzes"),
+    getQuizWithQuestions: (quizId) => ipcInvoke("getQuizWithQuestions", { quizId }),
 } satisfies Window['electron'])
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(
-    key: Key
+    key: Key,
+    args?: any
 ): Promise<EventPayloadMapping[Key]> {
-    return electron.ipcRenderer.invoke(key)
+    return electron.ipcRenderer.invoke(key, args)
 }
 
 function ipcOn<Key extends keyof EventPayloadMapping>(

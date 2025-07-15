@@ -4,6 +4,7 @@ import {getStaticData, pollResources} from "./resourceManager.js";
 import {getPreloadPath, getUIPath} from "./pathResolver.js";
 import {createTray} from "./tray.js";
 import {createMenu} from "./menu.js";
+import {initDatabase, saveQuiz, getQuizzes, getQuizWithQuestions} from "./database.js";
 
 
 app.on("ready", () => {
@@ -18,10 +19,30 @@ app.on("ready", () => {
         mainWindow.loadFile(getUIPath());
     }
 
+    // Initialize the database
+    initDatabase();
+
     pollResources(mainWindow);
 
     ipcMainHandle("getStaticData", () => {
         return getStaticData();
+    })
+
+    // Add IPC handlers for database operations
+    ipcMainHandle("saveQuiz", (_event?: Electron.IpcMainInvokeEvent, args?: { title: string, questions: any[] }) => {
+        if (!args) throw new Error("Missing arguments");
+        const { title, questions } = args;
+        return saveQuiz(title, questions);
+    })
+
+    ipcMainHandle("getQuizzes", () => {
+        return getQuizzes();
+    })
+
+    ipcMainHandle("getQuizWithQuestions", (_event?: Electron.IpcMainInvokeEvent, args?: { quizId: number }) => {
+        if (!args) throw new Error("Missing arguments");
+        const { quizId } = args;
+        return getQuizWithQuestions(quizId);
     })
 
     createTray(mainWindow)
@@ -52,4 +73,3 @@ function handleCloseEvents(mainWindow: BrowserWindow) {
         willClose = false;
     })
 }
-

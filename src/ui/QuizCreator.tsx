@@ -1,6 +1,19 @@
 import { useState } from "react";
 import "./App.css";
 
+declare global {
+  interface Window {
+    electron: {
+      saveQuiz: (title: string, questions: { text: string; options: string[]; correctAnswer: number }[]) => Promise<{ id: number; title: string; createdAt: string }>;
+      getQuizzes: () => Promise<any[]>;
+      getQuizWithQuestions: (quizId: number) => Promise<any>;
+      subscribeStatistics: (callback: (stats: any) => void) => () => void;
+      getStaticData: () => Promise<any>;
+      subscribeChangeView: (callback: (view: any) => void) => () => void;
+    }
+  }
+}
+
 interface Question {
   id: number;
   text: string;
@@ -9,6 +22,7 @@ interface Question {
 }
 
 function QuizCreator() {
+  const [quizTitle, setQuizTitle] = useState<string>("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question>({
     id: 1,
@@ -16,6 +30,7 @@ function QuizCreator() {
     options: ["", "", "", ""],
     correctAnswer: -1,
   });
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const handleQuestionTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCurrentQuestion({
@@ -63,6 +78,45 @@ function QuizCreator() {
     });
   };
 
+  const handleQuizTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuizTitle(e.target.value);
+  };
+
+  const saveQuiz = async () => {
+    // Validate that we have a title and at least one question
+    if (!quizTitle.trim()) {
+      alert("Please enter a quiz title");
+      return;
+    }
+
+    if (questions.length === 0) {
+      alert("Please add at least one question to the quiz");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      // Call the Electron API to save the quiz
+      const result = await window.electron.saveQuiz(quizTitle, questions);
+      alert(`Quiz "${result.title}" saved successfully!`);
+
+      // Reset the form
+      setQuizTitle("");
+      setQuestions([]);
+      setCurrentQuestion({
+        id: 1,
+        text: "",
+        options: ["", "", "", ""],
+        correctAnswer: -1,
+      });
+    } catch (error) {
+      console.error("Error saving quiz:", error);
+      alert("Failed to save quiz. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const goBack = () => {
     // This function will be implemented in App.tsx to return to the main screen
     window.dispatchEvent(new CustomEvent("backToHome"));
@@ -71,7 +125,19 @@ function QuizCreator() {
   return (
     <div className="quiz-creator">
       <h1>Create Quiz</h1>
-      
+
+      {/* Quiz Title */}
+      <div className="form-group quiz-title-group">
+        <label htmlFor="quizTitle">Quiz Title:</label>
+        <input
+          type="text"
+          id="quizTitle"
+          value={quizTitle}
+          onChange={handleQuizTitleChange}
+          placeholder="Enter quiz title"
+        />
+      </div>
+
       {/* Display existing questions */}
       {questions.length > 0 && (
         <div className="existing-questions">
@@ -89,7 +155,7 @@ function QuizCreator() {
       {/* Question form */}
       <div className="question-form">
         <h2>Add New Question</h2>
-        
+
         <div className="form-group">
           <label htmlFor="questionText">Question:</label>
           <input
@@ -131,6 +197,15 @@ function QuizCreator() {
           <button onClick={addQuestion} className="add-question-btn">
             Add Question
           </button>
+          {questions.length > 0 && (
+            <button 
+              onClick={saveQuiz} 
+              className="save-quiz-btn"
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save Quiz"}
+            </button>
+          )}
           <button onClick={goBack} className="back-btn">
             Back to Home
           </button>

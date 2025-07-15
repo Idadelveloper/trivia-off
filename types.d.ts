@@ -8,6 +8,9 @@ type EventPayloadMapping = {
     statistics: Statistics;
     getStaticData: StaticData;
     changeView: View;
+    saveQuiz: { id: number; title: string; createdAt: string };
+    getQuizzes: Quiz[];
+    getQuizWithQuestions: QuizWithQuestions | null;
 }
 
 type StaticData = {
@@ -17,6 +20,24 @@ type StaticData = {
 }
 
 type View = "CPU" | "RAM" | "STORAGE";
+
+type Quiz = {
+    id?: number;
+    title: string;
+    createdAt: string;
+};
+
+type Question = {
+    id?: number;
+    quizId: number;
+    text: string;
+    options: string[] | string;
+    correctAnswer: number;
+};
+
+type QuizWithQuestions = Quiz & {
+    questions: Question[];
+};
 
 type UnsubscribeFunction = () => void;
 
@@ -29,5 +50,8 @@ interface Window {
         subscribeChangeView: (
             callback: (view: View) => void
         ) => UnsubscribeFunction;
+        saveQuiz: (title: string, questions: { text: string; options: string[]; correctAnswer: number }[]) => Promise<{ id: number; title: string; createdAt: string }>;
+        getQuizzes: () => Promise<Quiz[]>;
+        getQuizWithQuestions: (quizId: number) => Promise<QuizWithQuestions | null>;
     }
 }
