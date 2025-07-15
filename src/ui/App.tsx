@@ -1,68 +1,59 @@
-import {useEffect, useMemo, useState} from "react";
-import reactLogo from "./assets/react.svg";
+import { useState } from "react";
 import "./App.css";
-import {useStatistics} from "./useStatistics.ts";
-import {Chart} from "./Chart.tsx";
 
 function App() {
-    const [count, setCount] = useState(0);
-    const statistics = useStatistics(10);
-    const [activeView, setActiveView] = useState<View>("CPU");
-    const cpuUsages = useMemo(
-        () => statistics.map(stat => stat.cpuUsage),
-        [statistics]
-    );
-    const ramUsages = useMemo(
-        () => statistics.map(stat => stat.ramUsage),
-        [statistics]
-    );
-    const storageUsages = useMemo(
-        () => statistics.map(stat => stat.storageUsage),
-        [statistics]
-    );
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
-    const activeUsages = useMemo(() => {
-        switch (activeView) {
-            case "CPU":
-                return cpuUsages;
-            case "RAM":
-                return ramUsages;
-            case "STORAGE":
-                return storageUsages;
-        }
-    }, [activeView, cpuUsages, ramUsages, storageUsages])
+    const handleCreateQuiz = () => {
+        setSelectedOption("create");
+        // Future implementation: Navigate to quiz creation page
+        console.log("Create quiz selected");
+    };
 
-    useEffect(() => {
-        window.electron.subscribeChangeView((view) => setActiveView(view))
-    }, []);
-
+    const handlePublishQuiz = () => {
+        setSelectedOption("publish");
+        // Future implementation: Navigate to quiz publishing page
+        console.log("Publish quiz selected");
+    };
 
     return (
         <div className="App">
-            <div style={{height: 120}}>
-                <Chart data={activeUsages} maxDataPoints={10}/>
-            </div>
-            <div>
-                <a href="https://react.dev" target="_blank">
-                    <img src={reactLogo} className="logo react" alt="React logo"/>
-                </a>
-            </div>
-            <h1>Trivia Off</h1>
             <meta
                 http-equiv="Content-Security-Policy"
                 content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';"
             />
-            <div className="card">
-                <button onClick={() => setCount((count) => count + 1)}>
-                    count is {count}
-                </button>
-                <p>
-                    Edit <code>src/App.tsx</code> and save to test HMR
+            <div className="home-container">
+                <h1>Welcome to Trivia Off</h1>
+                <p className="welcome-text">
+                    The ultimate offline multiplayer quiz game for your local network.
+                    Host a game and let players join using their web browsers!
                 </p>
+
+                <div className="button-container">
+                    <button 
+                        className={`quiz-button ${selectedOption === "create" ? "selected" : ""}`} 
+                        onClick={handleCreateQuiz}
+                    >
+                        Create Quiz
+                    </button>
+                    <button 
+                        className={`quiz-button ${selectedOption === "publish" ? "selected" : ""}`} 
+                        onClick={handlePublishQuiz}
+                    >
+                        Publish Quiz
+                    </button>
+                </div>
+
+                <div className="info-section">
+                    <h2>How to Play</h2>
+                    <ol>
+                        <li>Create a new quiz or select an existing one</li>
+                        <li>Publish the quiz to your local network</li>
+                        <li>Players join using their web browsers</li>
+                        <li>Start the game and have fun!</li>
+                    </ol>
+                </div>
             </div>
-            <p className="read-the-docs">
-                Click on the Vite and React logos to learn more
-            </p>
         </div>
     );
 }
