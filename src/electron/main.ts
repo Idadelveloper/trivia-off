@@ -5,7 +5,7 @@ import {getPreloadPath, getUIPath} from "./pathResolver.js";
 import {createTray} from "./tray.js";
 import {createMenu} from "./menu.js";
 import {initDatabase, saveQuiz, getQuizzes, getQuizWithQuestions, updateQuiz, deleteQuiz} from "./database.js";
-import {checkHotspotStatus, enableHotspot, disableHotspot} from "./hotspotManager.js";
+import {getNetworkStatus} from "./networkManager.js";
 
 
 app.on("ready", () => {
@@ -64,28 +64,12 @@ app.on("ready", () => {
         return result;
     })
 
-    // Add IPC handlers for hotspot management
-    ipcMainHandle("checkHotspotStatus", async () => {
-        console.log('IPC checkHotspotStatus handler called');
-        const status = await checkHotspotStatus();
-        console.log('IPC checkHotspotStatus handler returning:', status);
+    // Add IPC handler for network status
+    ipcMainHandle("getNetworkStatus", async () => {
+        console.log('IPC getNetworkStatus handler called');
+        const status = await getNetworkStatus();
+        console.log('IPC getNetworkStatus handler returning:', status);
         return status;
-    })
-
-    ipcMainHandle("enableHotspot", async (_event?: Electron.IpcMainInvokeEvent, args?: { ssid: string, password: string }) => {
-        console.log('IPC enableHotspot handler called with args:', args);
-        if (!args) throw new Error("Missing arguments");
-        const { ssid, password } = args;
-        const result = await enableHotspot(ssid, password);
-        console.log('IPC enableHotspot handler returning:', result);
-        return result;
-    })
-
-    ipcMainHandle("disableHotspot", async () => {
-        console.log('IPC disableHotspot handler called');
-        const result = await disableHotspot();
-        console.log('IPC disableHotspot handler returning:', result);
-        return result;
     })
 
     createTray(mainWindow)

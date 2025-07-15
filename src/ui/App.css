@@ -701,8 +701,8 @@ h1 {
   font-size: 1rem;
 }
 
-/* Hotspot Status Styles */
-.hotspot-status {
+/* Network Status Styles */
+.network-status {
   margin: 1rem 0;
   padding: 0.75rem;
   background-color: #f1f9fe;
@@ -710,10 +710,27 @@ h1 {
   text-align: center;
 }
 
-.hotspot-status p {
+.network-status p {
   margin: 0.5rem 0;
   color: #34495e;
   font-size: 1rem;
+}
+
+.network-status .wifi-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  background-color: #e8f8f5;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #2ecc71;
+  margin: 0.75rem 0;
+}
+
+.network-status .secondary-info {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin-top: 0.25rem;
 }
 
 .status-enabled {

@@ -4,9 +4,11 @@ type Statistics = {
     storageUsage: number
 };
 
-type HotspotStatus = {
-    isEnabled: boolean;
+type NetworkStatus = {
+    isConnected: boolean;
     ssid?: string;
+    ipAddress?: string;
+    hostname?: string;
     error?: string;
 };
 
@@ -19,9 +21,7 @@ type EventPayloadMapping = {
     getQuizWithQuestions: QuizWithQuestions | null;
     updateQuiz: Quiz;
     deleteQuiz: { success: boolean };
-    checkHotspotStatus: HotspotStatus;
-    enableHotspot: boolean;
-    disableHotspot: boolean;
+    getNetworkStatus: NetworkStatus;
 }
 
 type StaticData = {
@@ -66,8 +66,6 @@ interface Window {
         getQuizWithQuestions: (quizId: number) => Promise<QuizWithQuestions | null>;
         updateQuiz: (quizId: number, title: string, questions: { id?: number; text: string; options: string[]; correctAnswer: number }[]) => Promise<Quiz>;
         deleteQuiz: (quizId: number) => Promise<{ success: boolean }>;
-        checkHotspotStatus: () => Promise<HotspotStatus>;
-        enableHotspot: (ssid: string, password: string) => Promise<boolean>;
-        disableHotspot: () => Promise<boolean>;
+        getNetworkStatus: () => Promise<NetworkStatus>;
     }
 }

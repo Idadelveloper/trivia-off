@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import "./App.css";
 
-// Define the HotspotStatus interface
-interface HotspotStatus {
-  isEnabled: boolean;
+// Define the NetworkStatus interface
+interface NetworkStatus {
+  isConnected: boolean;
   ssid?: string;
+  ipAddress?: string;
+  hostname?: string;
   error?: string;
 }
 
@@ -26,73 +28,69 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [serverUrl, setServerUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [hotspotStatus, setHotspotStatus] = useState<HotspotStatus | null>(null);
-  const [hotspotError, setHotspotError] = useState<string | null>(null);
+  const [networkStatus, setNetworkStatus] = useState<NetworkStatus | null>(null);
+  const [networkError, setNetworkError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Check and enable hotspot, then initialize server
-    const initHotspotAndServer = async () => {
-      setIsLoading(true);
-      try {
-        // Check hotspot status
-        const status = await window.electron.checkHotspotStatus();
-        setHotspotStatus(status);
+  // Function to check network status and initialize server
+  const checkNetworkAndInitServer = async () => {
+    setIsLoading(true);
+    setNetworkError(null);
 
-        // If hotspot is not enabled, try to enable it
-        if (!status.isEnabled && !status.error) {
-          // Default SSID and password - in a real app, you might want to make these configurable
-          const ssid = "TriviaOffHotspot";
-          const password = "trivia123";
+    // Clear existing players when retrying
+    if (networkError) {
+      setPlayers([]);
+    }
 
-          const enabled = await window.electron.enableHotspot(ssid, password);
-          if (enabled) {
-            // Check status again after enabling
-            const updatedStatus = await window.electron.checkHotspotStatus();
-            setHotspotStatus(updatedStatus);
+    try {
+      // Get network status
+      const status = await window.electron.getNetworkStatus();
+      setNetworkStatus(status);
 
-            if (!updatedStatus.isEnabled) {
-              setHotspotError("Failed to enable hotspot. Please enable it manually.");
-            }
-          } else {
-            setHotspotError("Failed to enable hotspot. Please enable it manually.");
-          }
-        }
+      if (!status.isConnected) {
+        setNetworkError("Not connected to a Wi-Fi network. Please connect to a network and try again.");
+        setIsLoading(false);
+        return;
+      }
 
-        // Initialize server (mock for now)
-        // In a real implementation, you would use the hotspot's IP address
-        setTimeout(() => {
-          // Use the hotspot SSID in the URL if available
-          const baseUrl = status.isEnabled && status.ssid 
-            ? `http://${status.ssid}.local:3000/join/` 
-            : "http://localhost:3000/join/";
+      // Initialize server (mock for now)
+      // In a real implementation, you would use the network's IP address
+      setTimeout(() => {
+        // Use the IP address in the URL if available
+        const baseUrl = status.isConnected && status.ipAddress 
+          ? `http://${status.ipAddress}:3000/join/` 
+          : "http://localhost:3000/join/";
 
-          setServerUrl(baseUrl + quizId);
-          setIsLoading(false);
-        }, 1000);
+        setServerUrl(baseUrl + quizId);
+        setIsLoading(false);
+      }, 1000);
 
-        // Mock player joining for demonstration
-        const mockPlayerJoinInterval = setInterval(() => {
-          if (players.length < 5) {
+      // Mock player joining for demonstration
+      const mockPlayerJoinInterval = setInterval(() => {
+        setPlayers(prev => {
+          if (prev.length < 5) {
             const newPlayer: Player = {
               id: Math.random().toString(36).substring(7),
-              name: `Player ${players.length + 1}`,
+              name: `Player ${prev.length + 1}`,
               joinedAt: new Date()
             };
-            setPlayers(prev => [...prev, newPlayer]);
-          } else {
-            clearInterval(mockPlayerJoinInterval);
+            return [...prev, newPlayer];
           }
-        }, 2000);
+          clearInterval(mockPlayerJoinInterval);
+          return prev;
+        });
+      }, 2000);
 
-        return () => clearInterval(mockPlayerJoinInterval);
-      } catch (error) {
-        console.error("Error initializing hotspot and server:", error);
-        setHotspotError("An error occurred while setting up the hotspot: " + error.message);
-        setIsLoading(false);
-      }
-    };
+      return () => clearInterval(mockPlayerJoinInterval);
+    } catch (error) {
+      console.error("Error initializing network and server:", error);
+      setNetworkError("An error occurred while checking the network status: " + (error as Error).message);
+      setIsLoading(false);
+    }
+  };
 
-    initHotspotAndServer();
+  useEffect(() => {
+    // Check network status and initialize server when component mounts
+    checkNetworkAndInitServer();
   }, [quizId]);
 
   return (
@@ -101,28 +99,34 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
 
       {isLoading ? (
         <div className="loading-container">
-          <p>Setting up the hotspot and game server...</p>
+          <p>Checking network status and setting up the game server...</p>
         </div>
-      ) : hotspotError ? (
+      ) : networkError ? (
         <div className="error-container">
-          <p className="error-message">{hotspotError}</p>
-          <button className="retry-button" onClick={() => window.location.reload()}>
-            Retry
+          <p className="error-message">{networkError}</p>
+          <button className="retry-button" onClick={checkNetworkAndInitServer}>
+            Try Again
           </button>
         </div>
       ) : (
         <div className="lobby-content">
           <div className="qr-section">
             <h3>Scan to Join</h3>
-            <div className="hotspot-status">
+            <div className="network-status">
               <p>
-                Hotspot Status: 
-                <strong className={hotspotStatus?.isEnabled ? "status-enabled" : "status-disabled"}>
-                  {hotspotStatus?.isEnabled ? " Enabled" : " Disabled"}
+                Network Status: 
+                <strong className={networkStatus?.isConnected ? "status-enabled" : "status-disabled"}>
+                  {networkStatus?.isConnected ? " Connected" : " Disconnected"}
                 </strong>
               </p>
-              {hotspotStatus?.ssid && (
-                <p>Network Name: <strong>{hotspotStatus.ssid}</strong></p>
+              {networkStatus?.ssid && (
+                <p className="wifi-name">Wi-Fi Network Name (Connect to this): <strong>{networkStatus.ssid}</strong></p>
+              )}
+              {networkStatus?.ipAddress && (
+                <p>IP Address: <strong>{networkStatus.ipAddress}</strong></p>
+              )}
+              {networkStatus?.hostname && (
+                <p className="secondary-info">Device Name: <strong>{networkStatus.hostname}</strong></p>
               )}
             </div>
             <div className="qr-placeholder">

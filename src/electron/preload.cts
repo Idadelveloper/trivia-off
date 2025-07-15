@@ -24,24 +24,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
         console.log('Preload deleteQuiz called with ID:', quizId);
         return ipcInvoke("deleteQuiz", { quizId });
     },
-    // Add hotspot management functions
-    checkHotspotStatus: async () => {
-        console.log('Preload checkHotspotStatus called');
-        const status = await ipcInvoke("checkHotspotStatus");
-        console.log('Preload checkHotspotStatus returning:', status);
+    // Add network status function
+    getNetworkStatus: async () => {
+        console.log('Preload getNetworkStatus called');
+        const status = await ipcInvoke("getNetworkStatus");
+        console.log('Preload getNetworkStatus returning:', status);
         return status;
-    },
-    enableHotspot: async (ssid, password) => {
-        console.log('Preload enableHotspot called with SSID:', ssid);
-        const result = await ipcInvoke("enableHotspot", { ssid, password });
-        console.log('Preload enableHotspot returning:', result);
-        return result;
-    },
-    disableHotspot: async () => {
-        console.log('Preload disableHotspot called');
-        const result = await ipcInvoke("disableHotspot");
-        console.log('Preload disableHotspot returning:', result);
-        return result;
     },
 } satisfies Window['electron'])
 
