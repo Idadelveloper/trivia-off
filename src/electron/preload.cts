@@ -50,16 +50,36 @@ electron.contextBridge.exposeInMainWorld("electron", {
         console.log('Preload getGamePlayers returning:', players);
         return players;
     },
-    startGame: async () => {
-        console.log('Preload startGame called');
-        const result = await ipcInvoke("startGame");
+    startGame: async (quizId) => {
+        console.log('Preload startGame called with quizId:', quizId);
+        const result = await ipcInvoke("startGame", { quizId });
         console.log('Preload startGame returning:', result);
         return result;
     },
-    // Add event subscription for player updates
+    // Add event subscriptions for game events
     subscribePlayers: (callback) =>
         ipcOn("players:updated", (players) => {
             callback(players);
+        }),
+    subscribeGameCountdown: (callback) =>
+        ipcOn("game:countdown", (data) => {
+            callback(data);
+        }),
+    subscribeGameQuestion: (callback) =>
+        ipcOn("game:question", (data) => {
+            callback(data);
+        }),
+    subscribeGameAnswer: (callback) =>
+        ipcOn("game:answer", (data) => {
+            callback(data);
+        }),
+    subscribeGameLeaderboard: (callback) =>
+        ipcOn("game:leaderboard", (data) => {
+            callback(data);
+        }),
+    subscribeTimerUpdate: (callback) =>
+        ipcOn("timer:update", (data) => {
+            callback(data);
         }),
 } satisfies Window['electron'])
 

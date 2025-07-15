@@ -17,6 +17,13 @@ type Player = {
     name: string;
     joinedAt: Date;
     socketId: string;
+    score: number;
+    answers: {
+        questionIndex: number;
+        answerIndex: number;
+        isCorrect: boolean;
+        timeToAnswer: number; // in milliseconds
+    }[];
 };
 
 type EventPayloadMapping = {
@@ -34,6 +41,22 @@ type EventPayloadMapping = {
     getGamePlayers: Player[];
     startGame: { success: boolean };
     "players:updated": Player[];
+    "game:countdown": { seconds: number };
+    "game:question": { 
+        index: number; 
+        text: string; 
+        options: string[] | string; 
+        totalQuestions: number 
+    };
+    "game:answer": { 
+        questionIndex: number; 
+        correctAnswer: number 
+    };
+    "game:leaderboard": { 
+        leaderboard: { id: string; name: string; score: number }[]; 
+        isGameOver: boolean 
+    };
+    "timer:update": { value: number };
 }
 
 type StaticData = {
@@ -82,9 +105,35 @@ interface Window {
         startGameServer: (quizId: number, quizTitle: string) => Promise<{ serverUrl: string | null; networkStatus: NetworkStatus }>;
         stopGameServer: () => Promise<{ success: boolean }>;
         getGamePlayers: () => Promise<Player[]>;
-        startGame: () => Promise<{ success: boolean }>;
+        startGame: (quizId: number) => Promise<{ success: boolean }>;
         subscribePlayers: (
             callback: (players: Player[]) => void
+        ) => UnsubscribeFunction;
+        subscribeGameCountdown: (
+            callback: (data: { seconds: number }) => void
+        ) => UnsubscribeFunction;
+        subscribeGameQuestion: (
+            callback: (data: { 
+                index: number; 
+                text: string; 
+                options: string[] | string; 
+                totalQuestions: number 
+            }) => void
+        ) => UnsubscribeFunction;
+        subscribeGameAnswer: (
+            callback: (data: { 
+                questionIndex: number; 
+                correctAnswer: number 
+            }) => void
+        ) => UnsubscribeFunction;
+        subscribeGameLeaderboard: (
+            callback: (data: { 
+                leaderboard: { id: string; name: string; score: number }[]; 
+                isGameOver: boolean 
+            }) => void
+        ) => UnsubscribeFunction;
+        subscribeTimerUpdate: (
+            callback: (data: { value: number }) => void
         ) => UnsubscribeFunction;
     }
 }

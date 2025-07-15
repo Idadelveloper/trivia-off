@@ -175,7 +175,7 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
               className="start-game-button" 
               onClick={() => {
                 // Start the game on the server
-                window.electron.startGame().then(() => {
+                window.electron.startGame(quizId).then(() => {
                   // Call the parent component's onStartGame handler
                   onStartGame();
                 }).catch(error => {

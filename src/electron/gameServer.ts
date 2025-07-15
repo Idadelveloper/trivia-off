@@ -3,7 +3,7 @@ import http from 'http';
 import {Server as SocketIOServer} from 'socket.io';
 import path from 'path';
 import {BrowserWindow} from 'electron';
-import { fileURLToPath } from 'url';
+import {fileURLToPath} from 'url';
 
 // Get the directory name for the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +15,23 @@ export interface Player {
     name: string;
     joinedAt: Date;
     socketId: string;
+    score: number;
+    answers: {
+        questionIndex: number;
+        answerIndex: number;
+        isCorrect: boolean;
+        timeToAnswer: number; // in milliseconds
+    }[];
+}
+
+// Game state enum
+export enum GameState {
+    WAITING = 'waiting',
+    COUNTDOWN = 'countdown',
+    QUESTION = 'question',
+    ANSWER_REVEAL = 'answer_reveal',
+    LEADERBOARD = 'leaderboard',
+    GAME_OVER = 'game_over'
 }
 
 // Game server class
@@ -29,6 +46,16 @@ export class GameServer {
     private port: number = 3000;
     private networkStatus: NetworkStatus | null = null;
     private isRunning: boolean = false;
+
+    // Game state
+    private gameState: GameState = GameState.WAITING;
+    private questions: Question[] = [];
+    private currentQuestionIndex: number = 0;
+    private countdownTimer: NodeJS.Timeout | null = null;
+    private questionTimer: NodeJS.Timeout | null = null;
+    private countdownSeconds: number = 5; // 5-second countdown
+    private questionSeconds: number = 15; // 15 seconds per question
+    private currentTimerValue: number = 0;
 
     constructor() {
         // Initialize Express app
@@ -191,7 +218,9 @@ export class GameServer {
                     id: playerId,
                     name: data.name,
                     joinedAt: new Date(),
-                    socketId: socket.id
+                    socketId: socket.id,
+                    score: 0,
+                    answers: []
                 };
 
                 // Add player to the map
@@ -203,10 +232,65 @@ export class GameServer {
                     quizTitle: this.quizTitle
                 });
 
+                // If game is already in progress, send current game state
+                if (this.gameState !== GameState.WAITING) {
+                    socket.emit('game:state', {
+                        state: this.gameState,
+                        currentQuestion: this.getCurrentQuestionData(),
+                        timerValue: this.currentTimerValue
+                    });
+                }
+
                 // Notify the main window that a player has joined
                 this.notifyPlayersChanged();
 
                 console.log(`Player joined: ${player.name} (${player.id})`);
+            });
+
+            // Handle player answer
+            socket.on('player:answer', (data: { questionIndex: number, answerIndex: number }) => {
+                const player = this.players.get(socket.id);
+                if (!player) return;
+
+                // Only accept answers for the current question and if in QUESTION state
+                if (data.questionIndex !== this.currentQuestionIndex || this.gameState !== GameState.QUESTION) {
+                    return;
+                }
+
+                const question = this.questions[this.currentQuestionIndex];
+                if (!question) return;
+
+                // Calculate time to answer
+                const timeToAnswer = this.questionSeconds - this.currentTimerValue;
+
+                // Check if answer is correct
+                const isCorrect = data.answerIndex === question.correctAnswer;
+
+                // Calculate score: max 1000 points, based on speed and correctness
+                const score = isCorrect ? Math.round(1000 * (timeToAnswer / this.questionSeconds)) : 0;
+
+                // Record the answer
+                player.answers.push({
+                    questionIndex: data.questionIndex,
+                    answerIndex: data.answerIndex,
+                    isCorrect,
+                    timeToAnswer: timeToAnswer * 1000 // convert to milliseconds
+                });
+
+                // Update player score
+                player.score += score;
+
+                // Send result back to the player
+                socket.emit('answer:result', {
+                    isCorrect,
+                    score,
+                    totalScore: player.score
+                });
+
+                // Notify the main window that a player has answered
+                this.notifyPlayersChanged();
+
+                console.log(`Player ${player.name} answered question ${data.questionIndex}, correct: ${isCorrect}, score: ${score}`);
             });
 
             // Handle player leave
@@ -239,10 +323,190 @@ export class GameServer {
         }
     }
 
+    // Get current question data (sanitized for players)
+    private getCurrentQuestionData() {
+        if (this.currentQuestionIndex >= this.questions.length) {
+            return null;
+        }
+
+        const question = this.questions[this.currentQuestionIndex];
+        return {
+            index: this.currentQuestionIndex,
+            text: question.text,
+            options: question.options,
+            totalQuestions: this.questions.length
+        };
+    }
+
+    // Set quiz questions
+    setQuestions(questions: Question[]) {
+        this.questions = questions;
+    }
+
     // Start the game
     startGame() {
-        // Notify all connected clients that the game has started
-        this.io.emit('game:start');
+        // Reset game state
+        this.gameState = GameState.WAITING;
+        this.currentQuestionIndex = 0;
+        this.currentTimerValue = 0;
+
+        // Reset player scores
+        for (const player of this.players.values()) {
+            player.score = 0;
+            player.answers = [];
+        }
+
+        // Notify the main window that players have been updated
+        this.notifyPlayersChanged();
+
+        // Start the countdown
+        this.startCountdown();
+    }
+
+    // Start the countdown before the first question
+    private startCountdown() {
+        // Set game state to countdown
+        this.gameState = GameState.COUNTDOWN;
+        this.currentTimerValue = this.countdownSeconds;
+
+        // Notify all clients and the main window about the countdown
+        this.io.emit('game:countdown', {seconds: this.countdownSeconds});
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send('game:countdown', {seconds: this.countdownSeconds});
+        }
+
+        // Start the countdown timer
+        this.countdownTimer = setInterval(() => {
+            this.currentTimerValue--;
+
+            // Notify all clients and the main window about the timer update
+            this.io.emit('timer:update', {value: this.currentTimerValue});
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.webContents.send('timer:update', {value: this.currentTimerValue});
+            }
+
+            // When countdown reaches 0, show the first question
+            if (this.currentTimerValue <= 0) {
+                clearInterval(this.countdownTimer!);
+                this.showQuestion();
+            }
+        }, 1000);
+    }
+
+    // Show the current question
+    private showQuestion() {
+        // If we've gone through all questions, end the game
+        if (this.currentQuestionIndex >= this.questions.length) {
+            this.endGame();
+            return;
+        }
+
+        // Set game state to question
+        this.gameState = GameState.QUESTION;
+        this.currentTimerValue = this.questionSeconds;
+
+        // Get the current question data
+        const questionData = this.getCurrentQuestionData();
+
+        // Notify all clients and the main window about the question
+        this.io.emit('game:question', questionData);
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send('game:question', questionData);
+        }
+
+        // Start the question timer
+        this.questionTimer = setInterval(() => {
+            this.currentTimerValue--;
+
+            // Notify all clients and the main window about the timer update
+            this.io.emit('timer:update', {value: this.currentTimerValue});
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.webContents.send('timer:update', {value: this.currentTimerValue});
+            }
+
+            // When timer reaches 0, show the answer
+            if (this.currentTimerValue <= 0) {
+                clearInterval(this.questionTimer!);
+                this.showAnswer();
+            }
+        }, 1000);
+    }
+
+    // Show the answer for the current question
+    private showAnswer() {
+        // Set game state to answer reveal
+        this.gameState = GameState.ANSWER_REVEAL;
+
+        // Get the current question
+        const question = this.questions[this.currentQuestionIndex];
+
+        // Notify all clients and the main window about the answer
+        this.io.emit('game:answer', {
+            questionIndex: this.currentQuestionIndex,
+            correctAnswer: question.correctAnswer
+        });
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send('game:answer', {
+                questionIndex: this.currentQuestionIndex,
+                correctAnswer: question.correctAnswer
+            });
+        }
+
+        // After a delay, show the leaderboard
+        setTimeout(() => {
+            this.showLeaderboard();
+        }, 3000);
+    }
+
+    // Show the leaderboard
+    private showLeaderboard() {
+        // Set game state to leaderboard
+        this.gameState = GameState.LEADERBOARD;
+
+        // Get the top players
+        const leaderboard = this.getLeaderboard();
+
+        // Notify all clients and the main window about the leaderboard
+        this.io.emit('game:leaderboard', {leaderboard, isGameOver: false});
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send('game:leaderboard', {leaderboard, isGameOver: false});
+        }
+
+        // After a delay, move to the next question or end the game
+        setTimeout(() => {
+            this.currentQuestionIndex++;
+            if (this.currentQuestionIndex < this.questions.length) {
+                this.showQuestion();
+            } else {
+                this.endGame();
+            }
+        }, 5000);
+    }
+
+    // End the game and show final results
+    private endGame() {
+        // Set game state to game over
+        this.gameState = GameState.GAME_OVER;
+
+        // Get the final leaderboard
+        const leaderboard = this.getLeaderboard();
+
+        // Notify all clients and the main window about the game over
+        this.io.emit('game:leaderboard', {leaderboard, isGameOver: true});
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send('game:leaderboard', {leaderboard, isGameOver: true});
+        }
+    }
+
+    // Get the leaderboard (sorted by score)
+    private getLeaderboard() {
+        return Array.from(this.players.values())
+            .sort((a, b) => b.score - a.score)
+            .map(player => ({
+                id: player.id,
+                name: player.name,
+                score: player.score
+            }));
     }
 
     // Get the server URL

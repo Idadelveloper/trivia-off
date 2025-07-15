@@ -5,6 +5,7 @@ import AllQuizzes from "./AllQuizzes";
 import QuizDetail from "./QuizDetail";
 import QuizSelector from "./QuizSelector";
 import Lobby from "./Lobby";
+import Game from "./Game";
 
 // Define the Quiz type
 interface Quiz {
@@ -184,10 +185,16 @@ function App() {
     };
 
     const handleStartGame = () => {
-        // This would be implemented in the future to start the game
         console.log("Starting game with quiz ID:", selectedQuizId);
-        // For now, just go back to home
+        // Switch to the game view
+        setCurrentView("game");
+    };
+
+    const handleEndGame = () => {
+        // Go back to home when the game ends
         setCurrentView("home");
+        setSelectedQuizId(null);
+        setSelectedQuizTitle("");
     };
 
     return (
@@ -209,6 +216,13 @@ function App() {
                     quizTitle={selectedQuizTitle} 
                     onCancel={handleLobbyCancel} 
                     onStartGame={handleStartGame} 
+                />
+            )}
+            {currentView === "game" && selectedQuizId && (
+                <Game 
+                    quizId={selectedQuizId} 
+                    quizTitle={selectedQuizTitle} 
+                    onEndGame={handleEndGame} 
                 />
             )}
         </div>

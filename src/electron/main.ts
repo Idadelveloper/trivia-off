@@ -113,9 +113,24 @@ app.on("ready", () => {
         return players;
     });
 
-    ipcMainHandle("startGame", () => {
-        console.log('IPC startGame handler called');
+    ipcMainHandle("startGame", async (_event?: Electron.IpcMainInvokeEvent, args?: { quizId: number }) => {
+        console.log('IPC startGame handler called with args:', args);
+        if (!args) throw new Error("Missing arguments");
+
+        const { quizId } = args;
+
+        // Get the quiz with questions from the database
+        const quiz = getQuizWithQuestions(quizId);
+        if (!quiz) {
+            throw new Error(`Quiz with ID ${quizId} not found`);
+        }
+
+        // Set the questions in the game server
+        gameServer.setQuestions(quiz.questions);
+
+        // Start the game
         gameServer.startGame();
+
         return { success: true };
     });
 

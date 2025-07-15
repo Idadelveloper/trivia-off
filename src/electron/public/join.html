@@ -83,7 +83,7 @@
         .hidden {
             display: none;
         }
-        #waiting-screen {
+        #waiting-screen, #countdown-screen, #question-screen, #answer-screen, #leaderboard-screen {
             text-align: center;
         }
         .spinner {
@@ -105,6 +105,126 @@
         }
         .leave-button:hover {
             background-color: #d32f2f;
+        }
+        .countdown {
+            font-size: 5rem;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 20px 0;
+        }
+        .timer {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff9800;
+            margin: 10px 0;
+        }
+        .question-number {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .question-text {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .option {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: left;
+        }
+        .option:hover {
+            background-color: #f5f5f5;
+        }
+        .option.selected {
+            background-color: #e3f2fd;
+            border-color: #2196F3;
+        }
+        .option.correct {
+            background-color: #e8f5e9;
+            border-color: #4CAF50;
+        }
+        .option.incorrect {
+            background-color: #ffebee;
+            border-color: #f44336;
+        }
+        .result {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .result.correct {
+            color: #4CAF50;
+        }
+        .result.incorrect {
+            color: #f44336;
+        }
+        .score {
+            font-size: 1.2rem;
+            margin: 10px 0;
+        }
+        .leaderboard {
+            margin: 20px 0;
+        }
+        .leaderboard-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .leaderboard-item.top {
+            background-color: #fff9c4;
+            font-weight: bold;
+        }
+        .leaderboard-item.you {
+            background-color: #e3f2fd;
+        }
+        .rank {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .player-score {
+            font-weight: bold;
+        }
+        .game-over {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 20px 0;
+        }
+        .winners {
+            margin: 20px 0;
+        }
+        .winner {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .winner.first {
+            color: gold;
+            font-size: 1.5rem;
+        }
+        .winner.second {
+            color: silver;
+            font-size: 1.3rem;
+        }
+        .winner.third {
+            color: #cd7f32;
+            font-size: 1.2rem;
         }
     </style>
 </head>
@@ -131,6 +251,48 @@
                 <p id="player-info">Joined as: <strong id="player-name-display"></strong></p>
                 <button id="leave-button" class="leave-button">Leave Game</button>
             </div>
+
+            <!-- Countdown Screen -->
+            <div id="countdown-screen" class="hidden">
+                <h1>Get Ready!</h1>
+                <p>The game is about to start...</p>
+                <div class="countdown" id="countdown-value">5</div>
+            </div>
+
+            <!-- Question Screen -->
+            <div id="question-screen" class="hidden">
+                <div class="question-number" id="question-number">Question 1 of 10</div>
+                <div class="question-text" id="question-text">What is the capital of France?</div>
+                <div class="timer">Time remaining: <span id="timer-value">15</span>s</div>
+                <div class="options" id="options-container">
+                    <!-- Options will be added dynamically -->
+                </div>
+            </div>
+
+            <!-- Answer Screen -->
+            <div id="answer-screen" class="hidden">
+                <h1>Answer Revealed</h1>
+                <div class="result" id="result-message">Correct!</div>
+                <div class="score" id="score-message">You earned 750 points</div>
+                <div class="score" id="total-score-message">Total score: 750</div>
+                <p>Waiting for next question...</p>
+                <div class="spinner"></div>
+            </div>
+
+            <!-- Leaderboard Screen -->
+            <div id="leaderboard-screen" class="hidden">
+                <h1 id="leaderboard-title">Leaderboard</h1>
+                <div class="leaderboard" id="leaderboard-container">
+                    <!-- Leaderboard items will be added dynamically -->
+                </div>
+                <p id="next-question-message">Next question coming up...</p>
+                <div id="game-over-container" class="hidden">
+                    <div class="game-over">Game Over!</div>
+                    <div class="winners" id="winners-container">
+                        <!-- Winners will be added dynamically -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -139,12 +301,33 @@
         // Get DOM elements
         const joinScreen = document.getElementById('join-screen');
         const waitingScreen = document.getElementById('waiting-screen');
+        const countdownScreen = document.getElementById('countdown-screen');
+        const questionScreen = document.getElementById('question-screen');
+        const answerScreen = document.getElementById('answer-screen');
+        const leaderboardScreen = document.getElementById('leaderboard-screen');
+
         const quizTitleElement = document.getElementById('quiz-title');
         const playerNameInput = document.getElementById('player-name');
         const joinButton = document.getElementById('join-button');
         const errorMessage = document.getElementById('error-message');
         const playerNameDisplay = document.getElementById('player-name-display');
         const leaveButton = document.getElementById('leave-button');
+
+        const countdownValue = document.getElementById('countdown-value');
+        const questionNumber = document.getElementById('question-number');
+        const questionText = document.getElementById('question-text');
+        const timerValue = document.getElementById('timer-value');
+        const optionsContainer = document.getElementById('options-container');
+
+        const resultMessage = document.getElementById('result-message');
+        const scoreMessage = document.getElementById('score-message');
+        const totalScoreMessage = document.getElementById('total-score-message');
+
+        const leaderboardTitle = document.getElementById('leaderboard-title');
+        const leaderboardContainer = document.getElementById('leaderboard-container');
+        const nextQuestionMessage = document.getElementById('next-question-message');
+        const gameOverContainer = document.getElementById('game-over-container');
+        const winnersContainer = document.getElementById('winners-container');
 
         // Get quiz ID from URL
         const pathParts = window.location.pathname.split('/');
@@ -153,6 +336,10 @@
         // Socket.io connection
         let socket;
         let playerId;
+        let playerName;
+        let selectedOption = null;
+        let totalScore = 0;
+        let currentQuestionIndex = 0;
 
         // Initialize the page
         async function init() {
@@ -162,32 +349,29 @@
                 if (!response.ok) {
                     throw new Error('Game not found');
                 }
-                
+
                 const quizInfo = await response.json();
                 quizTitleElement.textContent = quizInfo.quizTitle;
-                
+
                 // Initialize socket connection
                 socket = io();
-                
+
                 // Set up socket event listeners
                 setupSocketListeners();
-                
+
                 // Enable join button when name is entered
                 playerNameInput.addEventListener('input', () => {
                     joinButton.disabled = !playerNameInput.value.trim();
                 });
-                
+
                 // Handle join button click
                 joinButton.addEventListener('click', joinGame);
-                
+
                 // Handle leave button click
                 leaveButton.addEventListener('click', leaveGame);
-                
-                // Handle game start event
-                socket.on('game:start', () => {
-                    alert('The game is starting!');
-                    // In a real implementation, you would navigate to the game screen
-                });
+
+                // This is handled by the game:countdown event now
+                // socket.on('game:start', () => {});
             } catch (error) {
                 showError(error.message);
             }
@@ -198,22 +382,215 @@
             // Handle successful join
             socket.on('player:joined', (data) => {
                 playerId = data.playerId;
-                playerNameDisplay.textContent = playerNameInput.value;
-                
+                playerName = playerNameInput.value;
+                playerNameDisplay.textContent = playerName;
+
                 // Switch to waiting screen
-                joinScreen.classList.add('hidden');
-                waitingScreen.classList.remove('hidden');
+                showScreen(waitingScreen);
             });
-            
+
+            // Handle game countdown
+            socket.on('game:countdown', (data) => {
+                countdownValue.textContent = data.seconds;
+                showScreen(countdownScreen);
+            });
+
+            // Handle timer updates
+            socket.on('timer:update', (data) => {
+                timerValue.textContent = data.value;
+            });
+
+            // Handle question display
+            socket.on('game:question', (data) => {
+                currentQuestionIndex = data.index;
+
+                // Update question text and number
+                questionText.textContent = data.text;
+                questionNumber.textContent = `Question ${data.index + 1} of ${data.totalQuestions}`;
+
+                // Clear selected option
+                selectedOption = null;
+
+                // Create options
+                optionsContainer.innerHTML = '';
+                const options = Array.isArray(data.options) ? data.options : JSON.parse(data.options);
+
+                options.forEach((option, index) => {
+                    const optionElement = document.createElement('div');
+                    optionElement.className = 'option';
+                    optionElement.textContent = option;
+                    optionElement.dataset.index = index;
+
+                    optionElement.addEventListener('click', () => {
+                        // Remove selected class from all options
+                        document.querySelectorAll('.option').forEach(el => {
+                            el.classList.remove('selected');
+                        });
+
+                        // Add selected class to clicked option
+                        optionElement.classList.add('selected');
+
+                        // Update selected option
+                        selectedOption = index;
+
+                        // Submit answer
+                        submitAnswer();
+                    });
+
+                    optionsContainer.appendChild(optionElement);
+                });
+
+                // Show question screen
+                showScreen(questionScreen);
+            });
+
+            // Handle answer result
+            socket.on('answer:result', (data) => {
+                // Update result message
+                if (data.isCorrect) {
+                    resultMessage.textContent = 'Correct!';
+                    resultMessage.className = 'result correct';
+                } else {
+                    resultMessage.textContent = 'Incorrect!';
+                    resultMessage.className = 'result incorrect';
+                }
+
+                // Update score messages
+                scoreMessage.textContent = `You earned ${data.score} points`;
+                totalScore = data.totalScore;
+                totalScoreMessage.textContent = `Total score: ${totalScore}`;
+
+                // Show answer screen
+                showScreen(answerScreen);
+            });
+
+            // Handle answer reveal (for players who didn't answer)
+            socket.on('game:answer', (data) => {
+                // If player is still on question screen, show the correct answer
+                if (questionScreen.classList.contains('hidden') === false) {
+                    // Highlight the correct answer
+                    const options = document.querySelectorAll('.option');
+                    options.forEach((option, index) => {
+                        if (index === data.correctAnswer) {
+                            option.classList.add('correct');
+                        } else if (selectedOption === index) {
+                            option.classList.add('incorrect');
+                        }
+                    });
+
+                    // After a short delay, show the answer screen with "Time's up" message
+                    setTimeout(() => {
+                        resultMessage.textContent = "Time's up!";
+                        resultMessage.className = 'result incorrect';
+                        scoreMessage.textContent = 'You earned 0 points';
+                        totalScoreMessage.textContent = `Total score: ${totalScore}`;
+                        showScreen(answerScreen);
+                    }, 1500);
+                }
+            });
+
+            // Handle leaderboard display
+            socket.on('game:leaderboard', (data) => {
+                // Update leaderboard title
+                if (data.isGameOver) {
+                    leaderboardTitle.textContent = 'Final Results';
+                    nextQuestionMessage.classList.add('hidden');
+                    gameOverContainer.classList.remove('hidden');
+
+                    // Display winners
+                    winnersContainer.innerHTML = '';
+                    if (data.leaderboard.length > 0) {
+                        const winner = document.createElement('div');
+                        winner.className = 'winner first';
+                        winner.textContent = `1st Place: ${data.leaderboard[0].name} (${data.leaderboard[0].score} pts)`;
+                        winnersContainer.appendChild(winner);
+                    }
+
+                    if (data.leaderboard.length > 1) {
+                        const second = document.createElement('div');
+                        second.className = 'winner second';
+                        second.textContent = `2nd Place: ${data.leaderboard[1].name} (${data.leaderboard[1].score} pts)`;
+                        winnersContainer.appendChild(second);
+                    }
+
+                    if (data.leaderboard.length > 2) {
+                        const third = document.createElement('div');
+                        third.className = 'winner third';
+                        third.textContent = `3rd Place: ${data.leaderboard[2].name} (${data.leaderboard[2].score} pts)`;
+                        winnersContainer.appendChild(third);
+                    }
+                } else {
+                    leaderboardTitle.textContent = 'Current Standings';
+                    nextQuestionMessage.classList.remove('hidden');
+                    gameOverContainer.classList.add('hidden');
+                }
+
+                // Populate leaderboard
+                leaderboardContainer.innerHTML = '';
+                data.leaderboard.forEach((player, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-item';
+
+                    // Add 'top' class for top 3 players
+                    if (index < 3) {
+                        item.classList.add('top');
+                    }
+
+                    // Add 'you' class if this is the current player
+                    if (player.id === playerId) {
+                        item.classList.add('you');
+                    }
+
+                    item.innerHTML = `
+                        <span><span class="rank">${index + 1}.</span> ${player.name}</span>
+                        <span class="player-score">${player.score}</span>
+                    `;
+
+                    leaderboardContainer.appendChild(item);
+                });
+
+                // Show leaderboard screen
+                showScreen(leaderboardScreen);
+            });
+
             // Handle connection errors
             socket.on('connect_error', (error) => {
                 showError('Connection error: ' + error.message);
             });
-            
+
             // Handle disconnection
             socket.on('disconnect', () => {
                 showError('Disconnected from server. Please refresh the page.');
             });
+        }
+
+        // Helper function to show a screen and hide others
+        function showScreen(screenToShow) {
+            // Hide all screens
+            joinScreen.classList.add('hidden');
+            waitingScreen.classList.add('hidden');
+            countdownScreen.classList.add('hidden');
+            questionScreen.classList.add('hidden');
+            answerScreen.classList.add('hidden');
+            leaderboardScreen.classList.add('hidden');
+
+            // Show the requested screen
+            screenToShow.classList.remove('hidden');
+        }
+
+        // Submit answer to the server
+        function submitAnswer() {
+            if (selectedOption !== null) {
+                socket.emit('player:answer', {
+                    questionIndex: currentQuestionIndex,
+                    answerIndex: selectedOption
+                });
+
+                // Disable all options after submitting
+                document.querySelectorAll('.option').forEach(el => {
+                    el.style.pointerEvents = 'none';
+                });
+            }
         }
 
         // Join the game
@@ -223,10 +600,10 @@
                 showError('Please enter a nickname');
                 return;
             }
-            
+
             // Hide any previous errors
             hideError();
-            
+
             // Send join request to server
             socket.emit('player:join', { name: playerName });
         }
@@ -234,7 +611,7 @@
         // Leave the game
         function leaveGame() {
             socket.emit('player:leave');
-            
+
             // Switch back to join screen
             waitingScreen.classList.add('hidden');
             joinScreen.classList.remove('hidden');
