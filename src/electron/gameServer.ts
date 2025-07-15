@@ -40,6 +40,7 @@ export class GameServer {
     private server: http.Server;
     private io: SocketIOServer;
     private players: Map<string, Player> = new Map();
+    private socketToPlayerId: Map<string, string> = new Map(); // Map from socket.id to player.id
     private mainWindow: BrowserWindow | null = null;
     private quizId: number | null = null;
     private quizTitle: string | null = null;
@@ -131,6 +132,7 @@ export class GameServer {
             try {
                 // Clear all players
                 this.players.clear();
+                this.socketToPlayerId.clear();
 
                 // Notify the main window that all players have left
                 this.notifyPlayersChanged();
@@ -224,7 +226,10 @@ export class GameServer {
                 };
 
                 // Add player to the map
-                this.players.set(socket.id, player);
+                this.players.set(playerId, player);
+
+                // Add mapping from socket.id to player.id
+                this.socketToPlayerId.set(socket.id, playerId);
 
                 // Send player ID back to the client
                 socket.emit('player:joined', {
@@ -249,7 +254,10 @@ export class GameServer {
 
             // Handle player answer
             socket.on('player:answer', (data: { questionIndex: number, answerIndex: number }) => {
-                const player = this.players.get(socket.id);
+                const playerId = this.socketToPlayerId.get(socket.id);
+                if (!playerId) return;
+
+                const player = this.players.get(playerId);
                 if (!player) return;
 
                 // Only accept answers for the current question and if in QUESTION state
@@ -260,14 +268,27 @@ export class GameServer {
                 const question = this.questions[this.currentQuestionIndex];
                 if (!question) return;
 
-                // Calculate time to answer
+                // Calculate time to answer in seconds
                 const timeToAnswer = this.questionSeconds - this.currentTimerValue;
 
                 // Check if answer is correct
                 const isCorrect = data.answerIndex === question.correctAnswer;
 
-                // Calculate score: max 1000 points, based on speed and correctness
-                const score = isCorrect ? Math.round(1000 * (timeToAnswer / this.questionSeconds)) : 0;
+                // Calculate score based on accuracy and speed
+                let accuracyScore = 0;
+                let speedScore = 0;
+
+                // Accuracy score: 20 points for correct answer, 0 for incorrect
+                if (isCorrect) {
+                    accuracyScore = 20;
+
+                    // Speed score: 15 points if answered in ≤1 second, decreasing by 1 point per second
+                    // Minimum speed score is 1 point if answered in the last second
+                    speedScore = Math.max(1, Math.min(15, Math.ceil(16 - timeToAnswer)));
+                }
+
+                // Total score for this question
+                const score = accuracyScore + speedScore;
 
                 // Record the answer
                 player.answers.push({
@@ -279,6 +300,9 @@ export class GameServer {
 
                 // Update player score
                 player.score += score;
+
+                // Log score update for debugging
+                console.log(`Player score updated: ${player.name} (${player.id}), question score: ${score}, total score: ${player.score}`);
 
                 // Send result back to the player
                 socket.emit('answer:result', {
@@ -308,11 +332,15 @@ export class GameServer {
 
     // Remove a player
     private removePlayer(socketId: string) {
-        const player = this.players.get(socketId);
-        if (player) {
-            console.log(`Player left: ${player.name} (${player.id})`);
-            this.players.delete(socketId);
-            this.notifyPlayersChanged();
+        const playerId = this.socketToPlayerId.get(socketId);
+        if (playerId) {
+            const player = this.players.get(playerId);
+            if (player) {
+                console.log(`Player left: ${player.name} (${player.id})`);
+                this.players.delete(playerId);
+                this.socketToPlayerId.delete(socketId);
+                this.notifyPlayersChanged();
+            }
         }
     }
 
@@ -500,13 +528,23 @@ export class GameServer {
 
     // Get the leaderboard (sorted by score)
     private getLeaderboard() {
-        return Array.from(this.players.values())
+        const players = Array.from(this.players.values());
+
+        // Log players before sorting for debugging
+        console.log('Players before sorting:', players.map(p => ({ id: p.id, name: p.name, score: p.score })));
+
+        const leaderboard = players
             .sort((a, b) => b.score - a.score)
             .map(player => ({
                 id: player.id,
                 name: player.name,
                 score: player.score
             }));
+
+        // Log leaderboard after sorting for debugging
+        console.log('Leaderboard after sorting:', leaderboard);
+
+        return leaderboard;
     }
 
     // Get the server URL

@@ -145,7 +145,7 @@ function Game({ quizId, quizTitle, onEndGame }: GameProps) {
       case GameState.GAME_OVER:
         return (
           <div className="leaderboard-container">
-            <h2>{isGameOver ? "Final Results" : "Current Standings"}</h2>
+            <h2>{isGameOver ? "Final Results" : "Leaderboard"}</h2>
             <div className="leaderboard">
               {leaderboard.map((player, index) => (
                 <div key={player.id} className={`leaderboard-item ${index < 3 ? "top" : ""}`}>

@@ -200,6 +200,37 @@
         .player-score {
             font-weight: bold;
         }
+        .player-stats {
+            background-color: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 0 auto 20px auto;
+            max-width: 600px;
+            border: 2px solid #2196F3;
+        }
+        .player-stats h3 {
+            margin-top: 0;
+            color: #1565C0;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+        .player-stats-content {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .player-rank, .player-score-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            padding: 5px 10px;
+        }
+        #player-rank-value, #player-score-value {
+            color: #1565C0;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
         .game-over {
             font-size: 2rem;
             font-weight: bold;
@@ -282,6 +313,14 @@
             <!-- Leaderboard Screen -->
             <div id="leaderboard-screen" class="hidden">
                 <h1 id="leaderboard-title">Leaderboard</h1>
+                <!-- Player's individual stats section -->
+                <div id="player-stats" class="player-stats">
+                    <h3>Your Stats</h3>
+                    <div class="player-stats-content">
+                        <div class="player-rank">Your Rank: <span id="player-rank-value">-</span></div>
+                        <div class="player-score-display">Your Score: <span id="player-score-value">0</span></div>
+                    </div>
+                </div>
                 <div class="leaderboard" id="leaderboard-container">
                     <!-- Leaderboard items will be added dynamically -->
                 </div>
@@ -328,6 +367,8 @@
         const nextQuestionMessage = document.getElementById('next-question-message');
         const gameOverContainer = document.getElementById('game-over-container');
         const winnersContainer = document.getElementById('winners-container');
+        const playerRankValue = document.getElementById('player-rank-value');
+        const playerScoreValue = document.getElementById('player-score-value');
 
         // Get quiz ID from URL
         const pathParts = window.location.pathname.split('/');
@@ -338,7 +379,7 @@
         let playerId;
         let playerName;
         let selectedOption = null;
-        let totalScore = 0;
+        let totalScore = 0; // Initialize score to 0
         let currentQuestionIndex = 0;
 
         // Initialize the page
@@ -384,6 +425,12 @@
                 playerId = data.playerId;
                 playerName = playerNameInput.value;
                 playerNameDisplay.textContent = playerName;
+
+                // Log player join for debugging
+                console.log('Player joined:', { 
+                    playerId: data.playerId, 
+                    playerName: playerName
+                });
 
                 // Switch to waiting screen
                 showScreen(waitingScreen);
@@ -460,6 +507,13 @@
                 totalScore = data.totalScore;
                 totalScoreMessage.textContent = `Total score: ${totalScore}`;
 
+                // Log score update for debugging
+                console.log('Score updated:', { 
+                    score: data.score, 
+                    totalScore: data.totalScore,
+                    playerId
+                });
+
                 // Show answer screen
                 showScreen(answerScreen);
             });
@@ -491,6 +545,13 @@
 
             // Handle leaderboard display
             socket.on('game:leaderboard', (data) => {
+                // Log leaderboard data for debugging
+                console.log('Received leaderboard data:', {
+                    leaderboard: data.leaderboard,
+                    isGameOver: data.isGameOver,
+                    playerId: playerId
+                });
+
                 // Update leaderboard title
                 if (data.isGameOver) {
                     leaderboardTitle.textContent = 'Final Results';
@@ -520,13 +581,22 @@
                         winnersContainer.appendChild(third);
                     }
                 } else {
-                    leaderboardTitle.textContent = 'Current Standings';
+                    leaderboardTitle.textContent = 'Leaderboard';
                     nextQuestionMessage.classList.remove('hidden');
                     gameOverContainer.classList.add('hidden');
                 }
 
                 // Populate leaderboard
                 leaderboardContainer.innerHTML = '';
+
+                // Update player's individual stats
+                let playerRank = "-";
+                let playerScore = totalScore; // Use the totalScore from answer:result event
+
+                // Log all player IDs in leaderboard for debugging
+                console.log('All player IDs in leaderboard:', data.leaderboard.map(p => p.id));
+                console.log('Current player totalScore:', totalScore);
+
                 data.leaderboard.forEach((player, index) => {
                     const item = document.createElement('div');
                     item.className = 'leaderboard-item';
@@ -539,6 +609,20 @@
                     // Add 'you' class if this is the current player
                     if (player.id === playerId) {
                         item.classList.add('you');
+                        playerRank = (index + 1).toString();
+                        // Update totalScore with the server's value to ensure consistency
+                        totalScore = player.score;
+                        playerScore = player.score;
+
+                        // Log player match for debugging
+                        console.log('Found player in leaderboard:', { 
+                            playerIdFromLeaderboard: player.id, 
+                            playerIdStored: playerId,
+                            match: player.id === playerId,
+                            playerRank,
+                            playerScore,
+                            totalScoreUpdated: totalScore
+                        });
                     }
 
                     item.innerHTML = `
@@ -547,6 +631,19 @@
                     `;
 
                     leaderboardContainer.appendChild(item);
+                });
+
+                // Update the player stats section
+                playerRankValue.textContent = playerRank;
+                playerScoreValue.textContent = totalScore.toString(); // Always use totalScore for consistency
+
+                // Log player stats for debugging
+                console.log('Player stats updated:', { 
+                    playerId, 
+                    playerRank, 
+                    playerScore, 
+                    totalScore,
+                    displayedScore: totalScore.toString()
                 });
 
                 // Show leaderboard screen
