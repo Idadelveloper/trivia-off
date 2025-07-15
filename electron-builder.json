@@ -1,0 +1,17 @@
+{
+  "appId": "com.n-ziermann.electron-course",
+  "files": ["dist-electron", "dist-react"],
+  "extraResources": ["dist-electron/preload.cjs", "src/assets/**"],
+  "icon": "./desktopIcon.png",
+  "mac": {
+    "target": "dmg",
+    "identity": null
+  },
+  "linux": {
+    "target": "AppImage",
+    "category": "Utility"
+  },
+  "win": {
+    "target": ["portable", "msi"]
+  }
+}
