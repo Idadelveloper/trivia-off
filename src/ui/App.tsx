@@ -3,6 +3,7 @@ import "./App.css";
 import QuizCreator from "./QuizCreator";
 import AllQuizzes from "./AllQuizzes";
 import QuizDetail from "./QuizDetail";
+import QuizSelector from "./QuizSelector";
 
 // Define the Quiz type
 interface Quiz {
@@ -83,8 +84,14 @@ function App() {
 
     const handlePublishQuiz = () => {
         setSelectedOption("publish");
-        // Future implementation: Navigate to quiz publishing page
-        console.log("Publish quiz selected");
+        setCurrentView("publishQuiz");
+    };
+
+    const handleQuizSelected = (quizId: number) => {
+        // Here you would implement the logic to publish the selected quiz
+        console.log(`Publishing quiz with ID: ${quizId}`);
+        // For now, just go back to home
+        setCurrentView("home");
     };
 
     const handleViewAllQuizzes = () => {
@@ -175,6 +182,7 @@ function App() {
             {currentView === "editQuiz" && selectedQuizId && <QuizCreator quizId={selectedQuizId} />}
             {currentView === "allQuizzes" && <AllQuizzes />}
             {currentView === "quizDetail" && selectedQuizId && <QuizDetail quizId={selectedQuizId} />}
+            {currentView === "publishQuiz" && <QuizSelector onQuizSelected={handleQuizSelected} onCancel={() => setCurrentView("home")} />}
         </div>
     );
 }
