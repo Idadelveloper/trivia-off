@@ -31,6 +31,36 @@ electron.contextBridge.exposeInMainWorld("electron", {
         console.log('Preload getNetworkStatus returning:', status);
         return status;
     },
+    // Add game server functions
+    startGameServer: async (quizId, quizTitle) => {
+        console.log('Preload startGameServer called with:', quizId, quizTitle);
+        const result = await ipcInvoke("startGameServer", { quizId, quizTitle });
+        console.log('Preload startGameServer returning:', result);
+        return result;
+    },
+    stopGameServer: async () => {
+        console.log('Preload stopGameServer called');
+        const result = await ipcInvoke("stopGameServer");
+        console.log('Preload stopGameServer returning:', result);
+        return result;
+    },
+    getGamePlayers: async () => {
+        console.log('Preload getGamePlayers called');
+        const players = await ipcInvoke("getGamePlayers");
+        console.log('Preload getGamePlayers returning:', players);
+        return players;
+    },
+    startGame: async () => {
+        console.log('Preload startGame called');
+        const result = await ipcInvoke("startGame");
+        console.log('Preload startGame returning:', result);
+        return result;
+    },
+    // Add event subscription for player updates
+    subscribePlayers: (callback) =>
+        ipcOn("players:updated", (players) => {
+            callback(players);
+        }),
 } satisfies Window['electron'])
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(

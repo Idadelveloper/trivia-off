@@ -42,48 +42,27 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
     }
 
     try {
-      // Get network status
-      const status = await window.electron.getNetworkStatus();
-      setNetworkStatus(status);
+      // Start the game server
+      const result = await window.electron.startGameServer(quizId, quizTitle);
 
-      if (!status.isConnected) {
+      // Set network status and server URL
+      setNetworkStatus(result.networkStatus);
+      setServerUrl(result.serverUrl);
+
+      if (!result.networkStatus.isConnected) {
         setNetworkError("Not connected to a Wi-Fi network. Please connect to a network and try again.");
         setIsLoading(false);
         return;
       }
 
-      // Initialize server (mock for now)
-      // In a real implementation, you would use the network's IP address
-      setTimeout(() => {
-        // Use the IP address in the URL if available
-        const baseUrl = status.isConnected && status.ipAddress 
-          ? `http://${status.ipAddress}:3000/join/` 
-          : "http://localhost:3000/join/";
+      // Get initial players list
+      const initialPlayers = await window.electron.getGamePlayers();
+      setPlayers(initialPlayers);
 
-        setServerUrl(baseUrl + quizId);
-        setIsLoading(false);
-      }, 1000);
-
-      // Mock player joining for demonstration
-      const mockPlayerJoinInterval = setInterval(() => {
-        setPlayers(prev => {
-          if (prev.length < 5) {
-            const newPlayer: Player = {
-              id: Math.random().toString(36).substring(7),
-              name: `Player ${prev.length + 1}`,
-              joinedAt: new Date()
-            };
-            return [...prev, newPlayer];
-          }
-          clearInterval(mockPlayerJoinInterval);
-          return prev;
-        });
-      }, 2000);
-
-      return () => clearInterval(mockPlayerJoinInterval);
+      setIsLoading(false);
     } catch (error) {
-      console.error("Error initializing network and server:", error);
-      setNetworkError("An error occurred while checking the network status: " + (error as Error).message);
+      console.error("Error initializing game server:", error);
+      setNetworkError("An error occurred while starting the game server: " + (error as Error).message);
       setIsLoading(false);
     }
   };
@@ -91,6 +70,22 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
   useEffect(() => {
     // Check network status and initialize server when component mounts
     checkNetworkAndInitServer();
+
+    // Subscribe to player updates
+    const unsubscribe = window.electron.subscribePlayers((updatedPlayers) => {
+      setPlayers(updatedPlayers);
+    });
+
+    // Clean up when component unmounts
+    return () => {
+      // Unsubscribe from player updates
+      unsubscribe();
+
+      // Stop the game server
+      window.electron.stopGameServer().catch(error => {
+        console.error("Error stopping game server:", error);
+      });
+    };
   }, [quizId]);
 
   return (
@@ -104,9 +99,14 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
       ) : networkError ? (
         <div className="error-container">
           <p className="error-message">{networkError}</p>
-          <button className="retry-button" onClick={checkNetworkAndInitServer}>
-            Try Again
-          </button>
+          <div className="button-container">
+            <button className="cancel-button" onClick={onCancel}>
+              Cancel
+            </button>
+            <button className="retry-button" onClick={checkNetworkAndInitServer}>
+              Try Again
+            </button>
+          </div>
         </div>
       ) : (
         <div className="lobby-content">
@@ -173,7 +173,15 @@ function Lobby({ quizId, quizTitle, onCancel, onStartGame }: LobbyProps) {
             </button>
             <button 
               className="start-game-button" 
-              onClick={onStartGame}
+              onClick={() => {
+                // Start the game on the server
+                window.electron.startGame().then(() => {
+                  // Call the parent component's onStartGame handler
+                  onStartGame();
+                }).catch(error => {
+                  console.error("Error starting game:", error);
+                });
+              }}
               disabled={players.length === 0}
             >
               Start Game ({players.length} players)

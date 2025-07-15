@@ -12,6 +12,13 @@ type NetworkStatus = {
     error?: string;
 };
 
+type Player = {
+    id: string;
+    name: string;
+    joinedAt: Date;
+    socketId: string;
+};
+
 type EventPayloadMapping = {
     statistics: Statistics;
     getStaticData: StaticData;
@@ -22,6 +29,11 @@ type EventPayloadMapping = {
     updateQuiz: Quiz;
     deleteQuiz: { success: boolean };
     getNetworkStatus: NetworkStatus;
+    startGameServer: { serverUrl: string | null; networkStatus: NetworkStatus };
+    stopGameServer: { success: boolean };
+    getGamePlayers: Player[];
+    startGame: { success: boolean };
+    "players:updated": Player[];
 }
 
 type StaticData = {
@@ -67,5 +79,12 @@ interface Window {
         updateQuiz: (quizId: number, title: string, questions: { id?: number; text: string; options: string[]; correctAnswer: number }[]) => Promise<Quiz>;
         deleteQuiz: (quizId: number) => Promise<{ success: boolean }>;
         getNetworkStatus: () => Promise<NetworkStatus>;
+        startGameServer: (quizId: number, quizTitle: string) => Promise<{ serverUrl: string | null; networkStatus: NetworkStatus }>;
+        stopGameServer: () => Promise<{ success: boolean }>;
+        getGamePlayers: () => Promise<Player[]>;
+        startGame: () => Promise<{ success: boolean }>;
+        subscribePlayers: (
+            callback: (players: Player[]) => void
+        ) => UnsubscribeFunction;
     }
 }

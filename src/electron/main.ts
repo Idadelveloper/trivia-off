@@ -6,6 +6,7 @@ import {createTray} from "./tray.js";
 import {createMenu} from "./menu.js";
 import {initDatabase, saveQuiz, getQuizzes, getQuizWithQuestions, updateQuiz, deleteQuiz} from "./database.js";
 import {getNetworkStatus} from "./networkManager.js";
+import gameServer from "./gameServer.js";
 
 
 app.on("ready", () => {
@@ -22,6 +23,9 @@ app.on("ready", () => {
 
     // Initialize the database
     initDatabase();
+
+    // Set the main window reference for the game server
+    gameServer.setMainWindow(mainWindow);
 
     pollResources(mainWindow);
 
@@ -71,6 +75,55 @@ app.on("ready", () => {
         console.log('IPC getNetworkStatus handler returning:', status);
         return status;
     })
+
+    // Add IPC handlers for game server operations
+    ipcMainHandle("startGameServer", async (_event?: Electron.IpcMainInvokeEvent, args?: { quizId: number, quizTitle: string }) => {
+        console.log('IPC startGameServer handler called with args:', args);
+        if (!args) throw new Error("Missing arguments");
+
+        const { quizId, quizTitle } = args;
+
+        // Get the current network status
+        const networkStatus = await getNetworkStatus();
+
+        // Set the network status and quiz info for the game server
+        gameServer.setNetworkStatus(networkStatus);
+        gameServer.setQuizInfo(quizId, quizTitle);
+
+        // Start the game server
+        await gameServer.start();
+
+        // Return the server URL
+        const serverUrl = gameServer.getServerUrl();
+        console.log('Game server started with URL:', serverUrl);
+
+        return { serverUrl, networkStatus };
+    });
+
+    ipcMainHandle("stopGameServer", async () => {
+        console.log('IPC stopGameServer handler called');
+        await gameServer.stop();
+        return { success: true };
+    });
+
+    ipcMainHandle("getGamePlayers", () => {
+        console.log('IPC getGamePlayers handler called');
+        const players = gameServer.getPlayers();
+        console.log('IPC getGamePlayers handler returning:', players);
+        return players;
+    });
+
+    ipcMainHandle("startGame", () => {
+        console.log('IPC startGame handler called');
+        gameServer.startGame();
+        return { success: true };
+    });
+
+    // Set up event listener for player updates
+    mainWindow.webContents.on('did-finish-load', () => {
+        // Forward player updates to the renderer process
+        mainWindow.webContents.send('players:updated', gameServer.getPlayers());
+    });
 
     createTray(mainWindow)
     handleCloseEvents(mainWindow)
