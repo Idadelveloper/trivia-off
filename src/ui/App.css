@@ -530,3 +530,45 @@ h1 {
   font-size: 1.2rem;
   margin-bottom: 1.5rem;
 }
+
+/* Add styles for question list items */
+.question-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #f5f5f5;
+}
+
+.question-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.edit-question-btn, .remove-question-btn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.edit-question-btn {
+  background-color: #4caf50;
+  color: white;
+}
+
+.edit-question-btn:hover {
+  background-color: #45a049;
+}
+
+.remove-question-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.remove-question-btn:hover {
+  background-color: #d32f2f;
+}

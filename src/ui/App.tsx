@@ -172,6 +172,7 @@ function App() {
 
             {currentView === "home" && renderHomeView()}
             {currentView === "createQuiz" && <QuizCreator />}
+            {currentView === "editQuiz" && selectedQuizId && <QuizCreator quizId={selectedQuizId} />}
             {currentView === "allQuizzes" && <AllQuizzes />}
             {currentView === "quizDetail" && selectedQuizId && <QuizDetail quizId={selectedQuizId} />}
         </div>

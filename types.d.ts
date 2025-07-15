@@ -11,6 +11,7 @@ type EventPayloadMapping = {
     saveQuiz: { id: number; title: string; createdAt: string };
     getQuizzes: Quiz[];
     getQuizWithQuestions: QuizWithQuestions | null;
+    updateQuiz: Quiz;
 }
 
 type StaticData = {
@@ -53,5 +54,6 @@ interface Window {
         saveQuiz: (title: string, questions: { text: string; options: string[]; correctAnswer: number }[]) => Promise<{ id: number; title: string; createdAt: string }>;
         getQuizzes: () => Promise<Quiz[]>;
         getQuizWithQuestions: (quizId: number) => Promise<QuizWithQuestions | null>;
+        updateQuiz: (quizId: number, title: string, questions: { id?: number; text: string; options: string[]; correctAnswer: number }[]) => Promise<Quiz>;
     }
 }

@@ -14,6 +14,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     saveQuiz: (title, questions) => ipcInvoke("saveQuiz", { title, questions }),
     getQuizzes: () => ipcInvoke("getQuizzes"),
     getQuizWithQuestions: (quizId) => ipcInvoke("getQuizWithQuestions", { quizId }),
+    updateQuiz: (quizId, title, questions) => ipcInvoke("updateQuiz", { quizId, title, questions }),
 } satisfies Window['electron'])
 
 function ipcInvoke<Key extends keyof EventPayloadMapping>(
