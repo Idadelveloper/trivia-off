@@ -47,7 +47,7 @@ function App() {
                     <img src={reactLogo} className="logo react" alt="React logo"/>
                 </a>
             </div>
-            <h1>Vite + React</h1>
+            <h1>Trivia Off</h1>
             <meta
                 http-equiv="Content-Security-Policy"
                 content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';"

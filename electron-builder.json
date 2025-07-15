@@ -1,7 +1,13 @@
 {
-  "appId": "com.n-ziermann.electron-course",
-  "files": ["dist-electron", "dist-react"],
-  "extraResources": ["dist-electron/preload.cjs", "src/assets/**"],
+  "appId": "com.idadelveloper.trivia-off",
+  "files": [
+    "dist-electron",
+    "dist-react"
+  ],
+  "extraResources": [
+    "dist-electron/preload.cjs",
+    "src/assets/**"
+  ],
   "icon": "./desktopIcon.png",
   "mac": {
     "target": "dmg",
@@ -12,6 +18,9 @@
     "category": "Utility"
   },
   "win": {
-    "target": ["portable", "msi"]
+    "target": [
+      "portable",
+      "msi"
+    ]
   }
 }

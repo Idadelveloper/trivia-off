@@ -1,8 +1,8 @@
 {
-  "name": "learning-electron",
+  "name": "trivia-off",
   "private": true,
   "version": "0.0.0",
-  "description": "Electron application for learning purposes",
+  "description": "Trivia Off - Kahoot but Offline",
   "author": "Ida Delphine <idadelm@gmail.com>",
   "type": "module",
   "main": "dist-electron/main.js",
