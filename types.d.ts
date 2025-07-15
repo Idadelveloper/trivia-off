@@ -7,6 +7,7 @@ type Statistics = {
 type EventPayloadMapping = {
     statistics: Statistics;
     getStaticData: StaticData;
+    changeView: View;
 }
 
 type StaticData = {
@@ -14,6 +15,8 @@ type StaticData = {
     cpuModel: string,
     totalMemoryGB: number
 }
+
+type View = "CPU" | "RAM" | "STORAGE";
 
 type UnsubscribeFunction = () => void;
 
@@ -23,5 +26,8 @@ interface Window {
             callback: (stats: Statistics) => void
         ) => UnsubscribeFunction;
         getStaticData: () => Promise<StaticData>
+        subscribeChangeView: (
+            callback: (view: View) => void
+        ) => UnsubscribeFunction;
     }
 }
