@@ -4,6 +4,7 @@ import QuizCreator from "./QuizCreator";
 import AllQuizzes from "./AllQuizzes";
 import QuizDetail from "./QuizDetail";
 import QuizSelector from "./QuizSelector";
+import Lobby from "./Lobby";
 
 // Define the Quiz type
 interface Quiz {
@@ -16,6 +17,7 @@ function App() {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [currentView, setCurrentView] = useState<string>("home");
     const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
+    const [selectedQuizTitle, setSelectedQuizTitle] = useState<string>("");
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [viewAllQuizzes, setViewAllQuizzes] = useState<boolean>(false);
@@ -87,11 +89,16 @@ function App() {
         setCurrentView("publishQuiz");
     };
 
-    const handleQuizSelected = (quizId: number) => {
-        // Here you would implement the logic to publish the selected quiz
-        console.log(`Publishing quiz with ID: ${quizId}`);
-        // For now, just go back to home
-        setCurrentView("home");
+    const handleQuizSelected = async (quizId: number) => {
+        // Get the quiz details to display the title in the lobby
+        try {
+            const quiz = await window.electron.getQuizWithQuestions(quizId);
+            setSelectedQuizId(quizId);
+            setSelectedQuizTitle(quiz.title);
+            setCurrentView("lobby");
+        } catch (error) {
+            console.error("Error getting quiz details:", error);
+        }
     };
 
     const handleViewAllQuizzes = () => {
@@ -170,6 +177,19 @@ function App() {
         );
     };
 
+    const handleLobbyCancel = () => {
+        setCurrentView("home");
+        setSelectedQuizId(null);
+        setSelectedQuizTitle("");
+    };
+
+    const handleStartGame = () => {
+        // This would be implemented in the future to start the game
+        console.log("Starting game with quiz ID:", selectedQuizId);
+        // For now, just go back to home
+        setCurrentView("home");
+    };
+
     return (
         <div className="App">
             <meta
@@ -183,6 +203,14 @@ function App() {
             {currentView === "allQuizzes" && <AllQuizzes />}
             {currentView === "quizDetail" && selectedQuizId && <QuizDetail quizId={selectedQuizId} />}
             {currentView === "publishQuiz" && <QuizSelector onQuizSelected={handleQuizSelected} onCancel={() => setCurrentView("home")} />}
+            {currentView === "lobby" && selectedQuizId && (
+                <Lobby 
+                    quizId={selectedQuizId} 
+                    quizTitle={selectedQuizTitle} 
+                    onCancel={handleLobbyCancel} 
+                    onStartGame={handleStartGame} 
+                />
+            )}
         </div>
     );
 }
