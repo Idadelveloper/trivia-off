@@ -59,6 +59,11 @@ function Game({ quizId, quizTitle, onEndGame }: GameProps) {
     // Subscribe to timer updates
     const unsubscribeTimer = window.electron.subscribeTimerUpdate((data) => {
       setTimerValue(data.value);
+
+      // Update countdown value during countdown phase
+      if (gameState === GameState.COUNTDOWN) {
+        setCountdown(data.value);
+      }
     });
 
     // Subscribe to answer reveal event

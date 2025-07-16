@@ -445,6 +445,11 @@
             // Handle timer updates
             socket.on('timer:update', (data) => {
                 timerValue.textContent = data.value;
+
+                // Update countdown value during countdown phase
+                if (!countdownScreen.classList.contains('hidden')) {
+                    countdownValue.textContent = data.value;
+                }
             });
 
             // Handle question display
